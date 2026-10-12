@@ -1,0 +1,68 @@
+/* Design tokens. Colors are injected at runtime from theme/palettes.ts
+   (applyPalette) — these are only the first-paint defaults. */
+:root {
+  --bg: #0b0d17;
+  --bg-rgb: 11 13 23;
+  --bg2: #141833;
+  --bg2-rgb: 20 24 51;
+  --surface: #1a1f3d;
+  --surface-rgb: 26 31 61;
+  --text: #eef0ff;
+  --text-rgb: 238 240 255;
+  --muted: #8a90b8;
+  --muted-rgb: 138 144 184;
+  --accent: #5ee6ff;
+  --accent-rgb: 94 230 255;
+  --accent2: #a78bfa;
+  --accent2-rgb: 167 139 250;
+  --warm: #ffb35c;
+  --warm-rgb: 255 179 92;
+  --hot: #ff5c8a;
+  --hot-rgb: 255 92 138;
+  --cool: #5c7cff;
+  --cool-rgb: 92 124 255;
+  --good: #6cf5b0;
+  --good-rgb: 108 245 176;
+  --bad: #ff6b6b;
+  --bad-rgb: 255 107 107;
+
+  --hue: var(--accent);
+
+  --glass: rgb(var(--surface-rgb) / 0.55);
+  --glass-strong: rgb(var(--surface-rgb) / 0.85);
+  --border: rgb(var(--text-rgb) / 0.08);
+  --border-strong: rgb(var(--text-rgb) / 0.16);
+  --shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 18px 40px -14px rgb(0 0 0 / 0.7);
+
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --text-2xl: 40px;
+  --text-3xl: 64px;
+
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 400ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
