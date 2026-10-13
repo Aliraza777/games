@@ -1,31 +1,19 @@
 {
-  "name": "pulse",
+  "name": "personal-games",
   "private": true,
-  "version": "0.1.0",
+  "description": "A home for small browser games. Each game in games/<name> is a self-contained Vite app with its own dependencies and deploy target.",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "smoke": "node e2e/smoke.mjs"
+    "games": "node scripts/games.mjs list",
+    "new-game": "node scripts/games.mjs new",
+    "dev": "node scripts/games.mjs run dev",
+    "build": "node scripts/games.mjs run build",
+    "test": "node scripts/games.mjs run test",
+    "install:all": "node scripts/games.mjs install --all",
+    "build:all": "node scripts/games.mjs run build --all",
+    "test:all": "node scripts/games.mjs run test --all"
   },
-  "dependencies": {
-    "idb-keyval": "^6.3.0",
-    "motion": "^14.1.0",
-    "pixi.js": "^8.22.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "zustand": "^5.0.15"
-  },
-  "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "playwright": "^1.64.0",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.4",
-    "vitest": "^4.1.11"
+  "engines": {
+    "node": ">=20"
   }
 }

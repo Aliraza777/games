@@ -1,6 +1,9 @@
+# Applies to every game in games/*
 node_modules
 dist
+.vite
 *.log
 .DS_Store
-e2e/screenshots
 .vercel
+**/e2e/screenshots
+**/e2e/.results
