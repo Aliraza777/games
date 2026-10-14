@@ -15,8 +15,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { viewport: { width: 1366, height: 800 } } },
-    { name: 'mobile', use: { ...devices['Pixel 7'], channel: 'chrome' }, grep: /@mobile/ },
+    { name: 'desktop', use: { viewport: { width: 1366, height: 800 } }, grepInvert: /@touch|@portrait/ },
+    { name: 'mobile', use: { ...devices['Pixel 7'], channel: 'chrome' }, grep: /@mobile|@portrait/ },
+    { name: 'phone-landscape', use: { ...devices['Pixel 7 landscape'], channel: 'chrome' }, grep: /@touch/ },
   ],
   webServer: {
     command: `npm run dev -- --port ${PORT} --strictPort`,

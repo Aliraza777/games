@@ -1400,3 +1400,74 @@ button {
 [data-rm='on'] .practice:hover {
   transform: none;
 }
+
+/* ─── QA pass: touch & accessibility ──────────────────────────────────── */
+
+@media (hover: none) and (pointer: coarse) {
+  /* No keyboard on phones — hide key hints. */
+  .kbd {
+    display: none;
+  }
+  /* Tension scale: full-width, finger-sized segments instead of small dots. */
+  .tension-scale {
+    gap: 3px;
+  }
+  .tension-dot {
+    aspect-ratio: auto;
+    height: 44px;
+    min-width: 0;
+    max-width: none;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .toggle {
+    width: 56px;
+    height: 34px;
+  }
+  .toggle-knob {
+    width: 26px;
+    height: 26px;
+  }
+  .slider input {
+    height: 8px;
+  }
+  .slider input::-webkit-slider-thumb {
+    width: 26px;
+    height: 26px;
+  }
+  .about li a,
+  .why li a {
+    display: inline-block;
+    padding: 8px 0;
+  }
+  .why-toggle {
+    padding: 10px 10px;
+  }
+  .segmented button {
+    min-height: 40px;
+  }
+}
+
+.more-games {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 16px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.more-games a {
+  padding: 8px 2px;
+}
+
+.more-games span { color: var(--muted); }
+
+@media (hover: none) and (pointer: coarse) {
+  /* Finger-sized slider hit area; the visible track stays thin. */
+  .slider input {
+    height: 32px;
+    background: linear-gradient(90deg, var(--accent) var(--fill), color-mix(in srgb, var(--text) 14%, transparent) var(--fill)) center / 100% 4px no-repeat;
+  }
+}

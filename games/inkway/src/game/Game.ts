@@ -1,4 +1,5 @@
-import { heldKeys } from '../lib/heldKeys';
+import { INK_KEYS, KEY_ACTIONS, heldKeys, type Action } from '../lib/heldKeys';
+import { capturePointer } from '../lib/device';
 import { clamp, damp, dist, type Vec } from '../lib/math';
 import { sfx } from '../audio/sfx';
 import {
@@ -20,7 +21,9 @@ import { TrickTracker, type TrickLanding } from './tricks';
 import { Course, type Gap, type Pickup, type Platform, type Updraft } from './worldgen';
 
 const STEP = 1 / 60;
-const DRIVE_KEYS = new Set(['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift']);
+/** Wheel distance (px) needed to switch ink, and the minimum gap between switches (ms). */
+const WHEEL_STEP = 60;
+const WHEEL_COOLDOWN = 220;
 const START_X = 6;
 
 export type HintId = 'drive' | 'draw' | 'inks' | 'flip' | 'cliff' | 'empty' | 'stuck';
@@ -70,6 +73,8 @@ export interface GameOptions {
   reducedMotion?: boolean;
   shake?: number;
   tutorial?: boolean;
+  /** Touch mode: on-screen stick, finger drawing, auto slow-mo while drawing, touch copy. */
+  touch?: boolean;
   onHud?: (h: HudState) => void;
   onEvent?: (e: GameEvent) => void;
   onOver?: (r: RunResult) => void;
@@ -82,6 +87,16 @@ export interface Stroke {
   maxX: number;
   born: number;
 }
+
+const TOUCH_HINTS: Record<HintId, string> = {
+  drive: 'Push the stick right to drive',
+  draw: 'Gap ahead! Drag your finger across it to draw a bridge — time slows while you draw',
+  inks: 'Tap the colored inks to switch: pink bounces, gold boosts',
+  flip: 'In the air, push the stick up or down to flip — flips refill your ink',
+  cliff: 'Cliff! Draw a ramp up to it',
+  empty: 'Out of ink — grab ink drops and land flips to refill',
+  stuck: 'Stuck? Tap Hop, draw a new line, or restart from the pause menu',
+};
 
 const HINTS: Record<HintId, string> = {
   drive: 'Hold W or ↑ to drive',
@@ -120,8 +135,11 @@ export class Game {
 
   private renderer: Renderer;
   private tricks = new TrickTracker();
-  private keys = new Set<string>();
+  private keys = new Set<Action>();
+  private virtual = { throttle: 0, lean: 0, hop: false, focus: false };
   private mouse = { x: -1, y: -1, inside: false, drawing: false };
+  /** Pen samples (screen space) received since the last frame. */
+  private penQueue: Vec[] = [];
   private builder: { id: number; b: StrokeBuilder } | null = null;
   private strokeDirty = false;
   private nextStrokeId = 1;
@@ -194,6 +212,8 @@ export class Game {
     this.state = 'paused';
     this.endStroke();
     this.keys.clear();
+    this.mouse.drawing = false;
+    Object.assign(this.virtual, { throttle: 0, lean: 0, hop: false, focus: false });
     sfx.engineStop();
     sfx.scribble(false);
     this.emitHud(true);
@@ -201,7 +221,10 @@ export class Game {
 
   /** Keys already held (W through a menu transition or a pause) still count. */
   private adoptHeldKeys() {
-    for (const k of heldKeys) if (DRIVE_KEYS.has(k)) this.keys.add(k);
+    for (const code of heldKeys) {
+      const a = KEY_ACTIONS[code];
+      if (a && a !== 'hop') this.keys.add(a);
+    }
   }
 
   resume() {
@@ -247,22 +270,32 @@ export class Game {
 
   private bindInput() {
     const c = this.canvas;
-    const keyName = (e: KeyboardEvent) => e.key.toLowerCase();
-    const GAME_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', '1', '2', '3']);
+    // Physical key codes: Shift+1 is still Digit1, WASD works on any layout.
     const down = (e: KeyboardEvent) => {
-      const k = keyName(e);
-      if (!GAME_KEYS.has(k) || e.metaKey || e.ctrlKey) return;
+      if (e.metaKey || e.ctrlKey) return;
+      const ink = INK_KEYS[e.code];
+      const action = KEY_ACTIONS[e.code];
+      if (ink == null && !action) return;
       if ((e.target as HTMLElement)?.closest?.('button, input')) return;
       e.preventDefault();
-      if (k === '1' || k === '2' || k === '3') this.setInk(INK_ORDER[Number(k) - 1]);
-      else this.keys.add(k);
+      if (ink != null) this.setInk(INK_ORDER[ink]);
+      else this.keys.add(action);
     };
-    const up = (e: KeyboardEvent) => this.keys.delete(keyName(e));
+    const up = (e: KeyboardEvent) => {
+      const action = KEY_ACTIONS[e.code];
+      if (action) this.keys.delete(action);
+    };
     const pos = (e: PointerEvent) => {
       const r = c.getBoundingClientRect();
       this.mouse.x = e.clientX - r.left;
       this.mouse.y = e.clientY - r.top;
       this.mouse.inside = true;
+      // Keep every sample while drawing (incl. coalesced high-rate ones) so a fast
+      // swipe between two frames still draws the whole path.
+      if (this.mouse.drawing) {
+        const samples = (e.getCoalescedEvents?.() ?? []).length ? e.getCoalescedEvents() : [e];
+        for (const s of samples) this.penQueue.push({ x: s.clientX - r.left, y: s.clientY - r.top });
+      }
     };
     const pdown = (e: PointerEvent) => {
       pos(e);
@@ -272,19 +305,35 @@ export class Game {
         return;
       }
       if (e.button !== 0 || (this.state !== 'running' && this.state !== 'ready')) return;
-      c.setPointerCapture?.(e.pointerId);
+      capturePointer(c, e.pointerId);
       this.mouse.drawing = true;
+      this.penQueue = [{ x: this.mouse.x, y: this.mouse.y }];
     };
     const pup = (e: PointerEvent) => {
-      if (e.button === 0) {
+      if (e.button === 0 && this.mouse.drawing) {
+        const r = c.getBoundingClientRect();
+        this.penQueue.push({ x: e.clientX - r.left, y: e.clientY - r.top });
+        this.updateDrawing(); // ink everything up to the lift, then finish
         this.mouse.drawing = false;
         this.endStroke();
       }
     };
     const leave = () => (this.mouse.inside = false);
+    // Trackpads send dozens of tiny wheel events per swipe: switch ink once per
+    // deliberate notch/swipe, not on every event.
+    let wheelAcc = 0;
+    let lastSwitch = 0;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
-      this.setInk(cycleInk(this.inkKind, e.deltaY > 0 ? 1 : -1, INK_ORDER));
+      wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+      const now = performance.now();
+      if (Math.abs(wheelAcc) >= WHEEL_STEP && now - lastSwitch > WHEEL_COOLDOWN) {
+        this.setInk(cycleInk(this.inkKind, wheelAcc > 0 ? 1 : -1, INK_ORDER));
+        wheelAcc = 0;
+        lastSwitch = now;
+      } else if (now - lastSwitch <= WHEEL_COOLDOWN) {
+        wheelAcc = 0;
+      }
     };
     const menu = (e: Event) => e.preventDefault();
     const blur = () => {
@@ -317,15 +366,23 @@ export class Game {
   private controls(): Controls {
     if (this.opts.attract) return this.autopilot();
     const k = this.keys;
-    const gas = k.has('w') || k.has('arrowup');
-    const brake = k.has('s') || k.has('arrowdown');
-    const back = k.has('a') || k.has('arrowleft');
-    const fwd = k.has('d') || k.has('arrowright');
-    return { throttle: gas ? 1 : brake ? -1 : 0, lean: (back ? 1 : 0) - (fwd ? 1 : 0), hop: k.has(' ') };
+    const v = this.virtual;
+    const keyThrottle = k.has('gas') ? 1 : k.has('brake') ? -1 : 0;
+    const keyLean = (k.has('back') ? 1 : 0) - (k.has('fwd') ? 1 : 0);
+    const hop = k.has('hop') || v.hop;
+    v.hop = false;
+    return { throttle: keyThrottle || v.throttle, lean: keyLean || v.lean, hop };
   }
 
   get focusActive() {
-    return this.keys.has('shift') && this.focus > 0 && this.state === 'running';
+    // On touch, time slows automatically while your finger draws (if Focus remains).
+    const wants = this.keys.has('focus') || this.virtual.focus || (this.opts.touch === true && this.mouse.drawing);
+    return wants && this.focus > 0 && this.state === 'running';
+  }
+
+  /** On-screen controls (touch): stick axes, hop pulse, slow-time hold. */
+  setVirtual(v: Partial<{ throttle: number; lean: number; hop: boolean; focus: boolean }>) {
+    Object.assign(this.virtual, v);
   }
 
   // ─── frame ───────────────────────────────────────────────────────────────
@@ -497,7 +554,16 @@ export class Game {
       sfx.scribble(false);
       return;
     }
-    const p = this.screenToWorld(this.mouse);
+    const samples = this.penQueue.length ? this.penQueue : [{ x: this.mouse.x, y: this.mouse.y }];
+    this.penQueue = [];
+    for (const s of samples) {
+      if (!this.mouse.drawing) break;
+      this.inkPoint(this.screenToWorld(s));
+    }
+  }
+
+  /** Feed one world-space pen sample into the current stroke. */
+  private inkPoint(p: Vec) {
     if (!this.builder) {
       const id = this.nextStrokeId++;
       this.builder = { id, b: new StrokeBuilder(this.inkKind, this.tank) };
@@ -627,7 +693,7 @@ export class Game {
     if (this.hints.has(id)) return;
     this.hints.add(id);
     this.activeHint = id;
-    this.opts.onEvent?.({ type: 'hint', id, text: HINTS[id] });
+    this.opts.onEvent?.({ type: 'hint', id, text: (this.opts.touch ? TOUCH_HINTS : HINTS)[id] });
   }
 
   private doneHint(id: HintId) {

@@ -10,7 +10,7 @@ import { spring } from '../../theme/motion';
 import { Button, Kbd } from '../components/Button';
 import { Hud, type HudHandle } from '../components/Hud';
 import { ModePreview } from '../components/ModePreview';
-import { useHotkeys } from '../hooks';
+import { isTouchDevice, useHotkeys } from '../hooks';
 
 type Phase = 'loading' | 'intro' | 'countdown' | 'running' | 'paused';
 
@@ -22,6 +22,7 @@ export function RunScreen() {
   const palette = useSettings((s) => s.palette);
   const pointerLock = useSettings((s) => s.pointerLock);
   const rm = prefersReducedMotion(useSettings((s) => s.reducedMotion));
+  const touch = isTouchDevice();
 
   const host = useRef<HTMLDivElement>(null);
   const engine = useRef<Engine | null>(null);
@@ -155,6 +156,14 @@ export function RunScreen() {
       />
 
       <Hud ref={hud} visible={started} reducedMotion={rm} />
+      {(phase === 'running' || phase === 'countdown') && (
+        <button type="button" className="run-pause" aria-label="Pause" onClick={pause}>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+            <rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+            <rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+          </svg>
+        </button>
+      )}
 
       <AnimatePresence>
         {phase === 'intro' && (
@@ -172,10 +181,18 @@ export function RunScreen() {
               </div>
               <span className="eyebrow">{run.daily ? 'Daily challenge' : meta.skill}</span>
               <h2>{meta.name}</h2>
-              <p>{meta.howTo}</p>
+              <p>{touch ? meta.howToTouch : meta.howTo}</p>
               <div className="intro-cta">
-                <span className="pulse-dot" /> Click anywhere or press <Kbd>Space</Kbd> to start
+                <span className="pulse-dot" />
+                {touch ? (
+                  'Tap anywhere to start'
+                ) : (
+                  <>
+                    Click anywhere or press <Kbd>Space</Kbd> to start
+                  </>
+                )}
               </div>
+              {!touch && (
               <div className="intro-keys">
                 <span>
                   <Kbd>Esc</Kbd> pause
@@ -185,6 +202,7 @@ export function RunScreen() {
                 </span>
                 {pointerLock && <span className="muted">Your mouse is captured while playing</span>}
               </div>
+              )}
             </motion.div>
           </motion.div>
         )}

@@ -1994,3 +1994,94 @@ button {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ─── QA pass: touch & accessibility ──────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Always-visible pause (Esc isn't an option on phones). */
+.run-pause {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: rgb(var(--surface-rgb) / 0.55);
+  backdrop-filter: blur(8px);
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+.run-pause:hover,
+.run-pause:focus-visible {
+  opacity: 1;
+}
+
+/* Touch-only devices: no keyboard hints, roomier controls. */
+@media (hover: none) and (pointer: coarse) {
+  .kbd {
+    display: none;
+  }
+  .toggle {
+    width: 54px;
+    height: 34px;
+  }
+  .toggle-knob {
+    width: 26px;
+    height: 26px;
+  }
+  .swatch {
+    width: 36px;
+    height: 36px;
+  }
+  .segmented button {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+  .slider input[type='range'] {
+    height: 10px;
+  }
+  .slider input[type='range']::-webkit-slider-thumb {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+.more-games {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 16px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.more-games a {
+  padding: 8px 2px;
+}
+
+.more-games span { color: var(--muted); }
+.more-games a { color: var(--accent); }
+
+@media (hover: none) and (pointer: coarse) {
+  /* Finger-sized slider hit area; the visible track stays thin. */
+  .slider input[type="range"] {
+    height: 32px;
+    background: linear-gradient(90deg, var(--accent) var(--fill), rgb(var(--text-rgb) / 0.12) var(--fill)) center / 100% 6px no-repeat;
+  }
+}

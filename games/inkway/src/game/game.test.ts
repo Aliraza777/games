@@ -7,7 +7,8 @@ const tick = (g: Game, seconds: number, dt = 1 / 60) => {
   const frame = (g as unknown as { frame(dt: number): void }).frame.bind(g);
   for (let t = 0; t < seconds; t += dt) frame(dt);
 };
-const press = (key: string, type: 'keydown' | 'keyup' = 'keydown') => window.dispatchEvent(new KeyboardEvent(type, { key }));
+const CODES: Record<string, string> = { w: 'KeyW', '1': 'Digit1', '2': 'Digit2', '3': 'Digit3' };
+const press = (key: string, type: 'keydown' | 'keyup' = 'keydown') => window.dispatchEvent(new KeyboardEvent(type, { key, code: CODES[key] ?? key }));
 
 const games: Game[] = [];
 function make(opts: Partial<GameOptions> & { vehicle?: VehicleId } = {}) {
@@ -81,6 +82,30 @@ describe('Game (integration)', () => {
     expect(over()!).toMatchObject({ cause: 'void', vehicle: 'car', seed: 1234 });
     expect(over()!.distance).toBeGreaterThan(30);
     expect(g.state).toBe('over');
+  });
+
+  it('switches ink with number keys — even while Shift is held (QA I3)', () => {
+    const { g } = make();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '@', code: 'Digit2', shiftKey: true }));
+    expect(g.inkKind).toBe('bounce');
+  });
+
+  it('drives with physical WASD on any layout (AZERTY Z = KeyW) (QA I3)', () => {
+    const { g } = make();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyW' }));
+    tick(g, 1);
+    expect(g.state).toBe('running');
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'z', code: 'KeyW' }));
+  });
+
+  it('touch: the virtual stick drives and drawing slows time automatically', () => {
+    const { g } = make({ touch: true });
+    g.setVirtual({ throttle: 1 });
+    tick(g, 1);
+    expect(g.state).toBe('running');
+    expect(g.distance).toBeGreaterThan(1);
+    (g as unknown as { mouse: { drawing: boolean } }).mouse.drawing = true;
+    expect(g.focusActive).toBe(true);
   });
 
   it('switches ink with number keys', () => {

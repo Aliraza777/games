@@ -59,6 +59,11 @@ describe('ratings', () => {
     expect(consistency([100, 900, 200, 800])).toBeLessThan(0.5);
   });
 
+  it('one slow outlier does not wipe out consistency (QA P7)', () => {
+    const steady = [210, 230, 220, 240, 215, 225, 235, 228, 219, 231, 222];
+    expect(consistency([...steady, 1300])).toBeGreaterThan(0.85);
+  });
+
   it('lowerIsBetter maps and clamps', () => {
     expect(lowerIsBetter(200, 200, 500)).toBe(1);
     expect(lowerIsBetter(500, 200, 500)).toBe(0);

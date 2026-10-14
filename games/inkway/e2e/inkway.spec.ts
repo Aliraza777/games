@@ -148,7 +148,7 @@ test('settings sheet @mobile', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/');
   if (test.info().project.name === 'mobile') {
-    await expect(page.getByText(/needs a keyboard and a mouse/i)).toBeVisible();
+    await expect(page.getByText(/touch mode: your left thumb drives/i)).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   }
   await page.getByRole('button', { name: 'Settings' }).click();
@@ -163,4 +163,59 @@ test('settings sheet @mobile', async ({ page }) => {
   expect(stored).toBe(false);
   await shot(page, '10-title-after');
   expect(errors).toEqual([]);
+});
+
+test('touch: thumb stick drives, finger draws a bridge, pause shows the touch legend @touch', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await expect(page.getByText(/touch mode: your left thumb drives/i)).toBeVisible();
+  await page.getByRole('button', { name: /^Ride/ }).tap();
+  await expect(page.getByText('Push the stick → to roll')).toBeVisible();
+
+  const stick = page.getByRole('slider', { name: /drive stick/i });
+  const box = (await stick.boundingBox())!;
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 60, cy, { steps: 4 }); // full gas
+  const gap = await gapAhead(page);
+  await expect(page.getByText(/drag your finger across it/i)).toBeVisible({ timeout: 15_000 });
+  // The "finger" draws with the stick still held (multi-touch in spirit).
+  const a = await toScreen(page, { x: gap.from.x - 1.5, y: gap.from.y + 0.1 });
+  const b = await toScreen(page, { x: gap.to.x + 1.5, y: gap.to.y + 0.1 });
+  await page.evaluate(([a, b]) => {
+    const c = document.querySelector('[data-testid="game"]') as HTMLCanvasElement;
+    const ev = (type: string, x: number, y: number) =>
+      c.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 7, pointerType: 'touch', button: 0, bubbles: true }));
+    ev('pointerdown', a.x, a.y);
+    for (let i = 1; i <= 20; i++) ev('pointermove', a.x + ((b.x - a.x) * i) / 20, a.y + ((b.y - a.y) * i) / 20);
+  }, [a, b]);
+  await page.waitForTimeout(100);
+  await page.evaluate(([b]) => window.dispatchEvent(new PointerEvent('pointerup', { clientX: b.x, clientY: b.y, pointerId: 7, pointerType: 'touch', button: 0 })), [b]);
+  await expect.poll(() => vehicleX(page), { timeout: 15_000 }).toBeGreaterThan(gap.to.x + 3);
+  await page.mouse.up();
+  await page.screenshot({ path: 'e2e/screenshots/touch-landscape-run.png' });
+
+  await page.getByRole('button', { name: 'Pause' }).tap();
+  await expect(page.getByRole('dialog', { name: 'Paused' })).toBeVisible();
+  await expect(page.getByText(/right finger/i).first()).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('portrait phones get a rotate prompt they can dismiss @portrait', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Ride/ }).tap();
+  await expect(page.getByRole('dialog', { name: 'Rotate your phone' })).toBeVisible();
+  await page.getByRole('button', { name: 'Play anyway' }).tap();
+  await expect(page.getByRole('dialog', { name: 'Rotate your phone' })).toBeHidden();
+});
+
+test('trackpad scroll changes ink once per swipe, not per event (QA I4)', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Enter');
+  await page.getByTestId('game').hover();
+  for (let i = 0; i < 12; i++) await page.mouse.wheel(0, 4); // one gentle swipe = many tiny events
+  await expect(page.getByTestId('ink-road')).toHaveAttribute('aria-checked', 'true');
+  await page.mouse.wheel(0, 120); // one deliberate notch
+  await expect(page.getByTestId('ink-bounce')).toHaveAttribute('aria-checked', 'true');
 });

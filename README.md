@@ -7,6 +7,7 @@ A home for small browser games. Each game is a **self-contained Vite app** in `g
 | [Pulse](games/pulse) | An aim trainer that feels like a game: six modes, synthesized audio, run stats. |
 | [Drift](games/drift) | A calming breathing and attention game: breathe, notice, return. |
 | [Inkway](games/inkway) | Draw the road with your mouse, drive it with your keyboard: a neon physics racer. |
+| [Flipline](games/flipline) | One-button neon stunt bike: hold to ride, hold to flip, land clean. 12 levels with loops. |
 
 ## Everyday commands (from this folder)
 
@@ -52,6 +53,7 @@ games/
   pulse/        aim trainer (Vercel-linked)
   drift/        breathing & focus game
   inkway/       draw-the-road physics racer
+  flipline/     one-button stunt bike
 templates/
   starter/      what `npm run new-game` copies
 scripts/

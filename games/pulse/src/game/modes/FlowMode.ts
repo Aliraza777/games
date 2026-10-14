@@ -37,8 +37,12 @@ export class FlowMode extends BaseMode {
     this.approach = Math.max(0.65, this.spb * 2);
   }
 
+  /** Falls back to the game clock if audio can't run (blocked autoplay), so a run always ends. */
+  private audioClock = true;
+
   private get songTime() {
-    return this.started ? audio.musicTime() : 0;
+    if (!this.started) return 0;
+    return this.audioClock ? audio.musicTime() : this.e.time;
   }
 
   start() {
@@ -52,6 +56,7 @@ export class FlowMode extends BaseMode {
     }).map((n) => ({ ...n, target: null, done: false }));
     e.underlay.addChild(this.links);
     audio.startMusic({ bpm: this.bpm, style: 'flow', lengthSec: this.songLen + 1 });
+    this.audioClock = audio.musicActive;
     this.started = true;
   }
 

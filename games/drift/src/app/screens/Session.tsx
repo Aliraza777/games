@@ -6,14 +6,14 @@ import { practice } from '../../breath/practices';
 import { CountSession, PacedSession, type CountResult } from '../../breath/session';
 import { HARMONY_THRESHOLD } from '../../breath/sync';
 import { sessionLength } from '../../breath/timeline';
-import { buzz, getSpeed } from '../../lib/clock';
+import { buzz, capturePointer, getSpeed } from '../../lib/clock';
 import { Scene } from '../../scene/Scene';
 import { useApp, type SessionConfig } from '../../store/app';
 import { useSettings } from '../../store/settings';
 import { THEMES } from '../../theme';
 import { Button } from '../components/Button';
 import { IconClose } from '../components/Icons';
-import { fmtClock, useKeys, useReducedMotion } from '../hooks';
+import { fmtClock, isTouchDevice, useKeys, useReducedMotion, useWakeLock } from '../hooks';
 import { Summary, type SessionOutcome } from './Summary';
 
 type Stage = 'running' | 'paused' | 'summary';
@@ -73,6 +73,8 @@ function SessionRun({ cfg }: { cfg: SessionConfig }) {
   const [cycle, setCycle] = useState(0);
   const [idle, setIdle] = useState(false);
   const [outcome, setOutcome] = useState<SessionOutcome | null>(null);
+
+  useWakeLock(stage !== 'summary');
 
   const setStage = (s: Stage) => {
     stageRef.current = s;
@@ -325,7 +327,9 @@ function SessionRun({ cfg }: { cfg: SessionConfig }) {
     p.kind === 'paced'
       ? cfg.follow
         ? 'Just follow the light'
-        : 'Hold anywhere (or Space) while breathing in · let go to breathe out'
+        : isTouchDevice()
+          ? 'Hold anywhere while breathing in · let go to breathe out'
+          : 'Hold anywhere (or Space) while breathing in · let go to breathe out'
       : p.kind === 'count'
         ? 'Tap on each out-breath · press and hold on the ninth'
         : 'Touch or drag across the water';
@@ -348,7 +352,7 @@ function SessionRun({ cfg }: { cfg: SessionConfig }) {
         data-phase={firstPhase?.kind}
         onPointerDown={(e) => {
           if (stageRef.current !== 'running') return;
-          e.currentTarget.setPointerCapture?.(e.pointerId);
+          capturePointer(e.currentTarget, e.pointerId);
           const r = e.currentTarget.getBoundingClientRect();
           press(e.clientX - r.left, e.clientY - r.top);
         }}

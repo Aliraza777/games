@@ -1,4 +1,4 @@
-import { clamp, mean, stddev } from '../../lib/math';
+import { clamp, median } from '../../lib/math';
 
 export const COMBO_TIERS = [10, 25, 50] as const;
 
@@ -49,12 +49,16 @@ export function flowPoints(j: Judgement, offset: number): number {
   return Math.round(JUDGEMENT_POINTS[j] * clamp(1.2 - 0.4 * offset, 0.8, 1.2));
 }
 
-/** 1 when values are perfectly even, towards 0 as they scatter. */
+/**
+ * 1 when values are perfectly even, towards 0 as they scatter. Uses the median
+ * absolute deviation, so one slow outlier can't wipe out an otherwise steady run.
+ */
 export function consistency(values: readonly number[]): number {
   if (values.length < 3) return 0.5;
-  const m = mean(values);
-  if (m === 0) return 0;
-  return clamp(1 - stddev(values) / m, 0, 1);
+  const med = median(values);
+  if (med === 0) return 0;
+  const mad = median(values.map((v) => Math.abs(v - med)));
+  return clamp(1 - (1.4826 * mad) / med, 0, 1);
 }
 
 /** Maps a lower-is-better value onto 0..1 (best → 1, worst → 0). */

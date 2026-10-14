@@ -58,3 +58,42 @@ export function fmtClock(seconds: number): string {
   const s = Math.max(0, Math.ceil(seconds));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
+
+/** Phones and tablets: no hover, coarse pointer — copy and controls adapt. */
+export function isTouchDevice(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+}
+
+type WakeLockSentinelLike = { release: () => Promise<void> };
+
+/**
+ * Keep the screen awake while `active` — a phone shouldn't dim in the middle of
+ * an eyes-closed breathing session. Re-acquired when you come back to the tab.
+ */
+export function useWakeLock(active: boolean) {
+  useEffect(() => {
+    const wl = (navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<WakeLockSentinelLike> } }).wakeLock;
+    if (!active || !wl) return;
+    let sentinel: WakeLockSentinelLike | null = null;
+    let cancelled = false;
+    const acquire = async () => {
+      try {
+        const s = await wl.request('screen');
+        if (cancelled) void s.release();
+        else sentinel = s;
+      } catch {
+        /* denied (battery saver, etc.) — the session still works */
+      }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void acquire();
+    };
+    void acquire();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      void sentinel?.release().catch(() => {});
+    };
+  }, [active]);
+}

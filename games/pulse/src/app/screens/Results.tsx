@@ -129,7 +129,7 @@ export function Results() {
           {r.extra.map((x) => (
             <motion.div className="tile" key={x.label} variants={riseIn}>
               <span className="tile-label">{x.label}</span>
-              <span className="tile-value tile-text">{x.value}</span>
+              <span className={`tile-value${x.value.length > 8 ? ' tile-text' : ''}`}>{x.value}</span>
             </motion.div>
           ))}
         </motion.section>

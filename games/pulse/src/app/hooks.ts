@@ -53,3 +53,8 @@ export function useHotkeys(map: KeyMap) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 }
+
+/** Phones and tablets: no hover, coarse pointer — copy and controls adapt. */
+export function isTouchDevice(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+}

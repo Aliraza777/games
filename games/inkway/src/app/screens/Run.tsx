@@ -6,7 +6,10 @@ import { Game, type GameEvent, type HudState, type RunResult } from '../../game/
 import { useApp, type RunConfig } from '../../store/app';
 import { useRecords } from '../../store/records';
 import { prefersReducedMotion, useSettings } from '../../store/settings';
+import { isTouchDevice, usePortrait } from '../../lib/device';
 import { Button } from '../components/Button';
+import { ControlsCard } from '../components/Controls';
+import { TouchControls, TouchLegend } from '../components/TouchControls';
 
 interface Toast {
   id: number;
@@ -38,6 +41,10 @@ function RunView({ run }: { run: RunConfig }) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const { restart, toTitle } = useApp.getState();
   const spec = VEHICLES[run.vehicle];
+  const touch = isTouchDevice();
+  const portrait = usePortrait();
+  const [portraitOk, setPortraitOk] = useState(false);
+  const [, setReady] = useState(false);
 
   const push = (t: Omit<Toast, 'id'>, ms: number) => {
     const id = ++toastId;
@@ -58,6 +65,7 @@ function RunView({ run }: { run: RunConfig }) {
       reducedMotion: prefersReducedMotion(settings.reducedMotion),
       shake: settings.shake,
       tutorial: !settings.tutorialDone,
+      touch,
       onHud: setHud,
       onEvent: (e: GameEvent) => {
         if (e.type === 'hint') push({ kind: 'hint', text: e.text, hintId: e.id }, e.id === 'draw' ? 15000 : 6500);
@@ -77,6 +85,7 @@ function RunView({ run }: { run: RunConfig }) {
       },
     });
     game.current = g;
+    setReady(true); // re-render so touch controls can bind to the game
     if (import.meta.env.DEV) (window as unknown as { __inkway?: Game }).__inkway = g;
     g.start();
     return () => {
@@ -88,27 +97,21 @@ function RunView({ run }: { run: RunConfig }) {
 
   // Pause on Esc or when the window loses focus.
   useEffect(() => {
-    const doPause = () => {
-      const g = game.current;
-      if (!g || g.state === 'over' || g.state === 'crashing' || g.state === 'paused') return;
-      g.pause();
-      sfx.stopMusic();
-      setPaused(true);
-    };
     const onKey = (e: KeyboardEvent) => {
       const g = game.current;
       if (!g || e.repeat) return;
-      const k = e.key.toLowerCase();
+      // A focused button handles Enter/Space itself — don't fire twice (QA I8).
+      if ((e.code === 'Enter' || e.code === 'Space') && (e.target as HTMLElement)?.closest?.('button')) return;
       if (g.state === 'over') {
-        if (k === 'enter' || k === 'r') restart();
-        if (k === 'escape') toTitle();
+        if (e.code === 'Enter' || e.code === 'KeyR') restart();
+        if (e.code === 'Escape') toTitle();
         return;
       }
-      if (k === 'escape') {
+      if (e.code === 'Escape') {
         if (g.state === 'paused') resume();
         else doPause();
       }
-      if (k === 'r') restart();
+      if (e.code === 'KeyR') restart();
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener('blur', doPause);
@@ -117,6 +120,14 @@ function RunView({ run }: { run: RunConfig }) {
       window.removeEventListener('blur', doPause);
     };
   }, [restart, toTitle]);
+
+  function doPause() {
+    const g = game.current;
+    if (!g || g.state === 'over' || g.state === 'crashing' || g.state === 'paused') return;
+    g.pause();
+    sfx.stopMusic();
+    setPaused(true);
+  }
 
   const resume = () => {
     const g = game.current;
@@ -132,6 +143,26 @@ function RunView({ run }: { run: RunConfig }) {
   return (
     <main className="screen run" style={{ ['--v' as string]: spec.color } as CSSProperties}>
       <canvas ref={canvas} className="game-canvas" data-testid="game" />
+      {!outcome && !paused && (
+        <button type="button" className="pause-btn" aria-label="Pause" onClick={doPause} onPointerDown={(e) => e.stopPropagation()}>
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
+            <rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+            <rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+          </svg>
+        </button>
+      )}
+      {touch && !outcome && !paused && game.current && <TouchControls api={game.current} />}
+      {touch && portrait && !portraitOk && !outcome && (
+        <div className="rotate-prompt" role="dialog" aria-label="Rotate your phone">
+          <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden>
+            <rect x="20" y="8" width="24" height="44" rx="5" className="rp-phone" />
+            <path d="M8 40 a24 24 0 0 0 24 18" className="rp-arrow" />
+            <path d="M28 54 l4 4 -5 3" className="rp-arrow" />
+          </svg>
+          <p>Turn your phone sideways — your left thumb drives, your right finger draws.</p>
+          <Button onClick={() => setPortraitOk(true)}>Play anyway</Button>
+        </div>
+      )}
 
       {hud && (
         <div className="hud" aria-hidden={!!outcome}>
@@ -169,8 +200,8 @@ function RunView({ run }: { run: RunConfig }) {
                   <span>{INKS[k].label}</span>
                 </button>
               ))}
-              <div className={`focus${hud.focusActive ? ' is-active' : ''}`} aria-label="Focus (Shift)">
-                <span>Shift · slow time</span>
+              <div className={`focus${hud.focusActive ? ' is-active' : ''}`} aria-label="Focus (slow time)">
+                <span>{touch ? 'Slow time' : 'Shift · slow time'}</span>
                 <div className="focus-bar">
                   <div style={{ transform: `scaleX(${hud.focus / FOCUS.max})` }} />
                 </div>
@@ -179,7 +210,13 @@ function RunView({ run }: { run: RunConfig }) {
           </div>
           {hud.state === 'ready' && !outcome && (
             <motion.div className="ready-hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              Hold <kbd>W</kbd> to roll
+              {touch ? (
+                'Push the stick → to roll'
+              ) : (
+                <>
+                  Hold <kbd>W</kbd> to roll
+                </>
+              )}
             </motion.div>
           )}
         </div>
@@ -209,6 +246,7 @@ function RunView({ run }: { run: RunConfig }) {
           <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="panel" role="dialog" aria-modal="true" aria-label="Paused" initial={{ scale: 0.94 }} animate={{ scale: 1 }}>
               <h2>Paused</h2>
+              <div className="pause-help">{touch ? <TouchLegend /> : <ControlsCard />}</div>
               <div className="panel-actions">
                 <Button variant="primary" kbd="Esc" onClick={resume} autoFocus>
                   Resume

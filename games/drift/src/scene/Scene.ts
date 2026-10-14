@@ -58,6 +58,8 @@ interface Shimmer {
 }
 
 const MAX_RIPPLES = 40;
+/** Height reserved for the session's top bar (close button, title, timer). */
+const TOP_BAR = 64;
 const RING_SLOTS = 9;
 
 /**
@@ -126,8 +128,16 @@ export class Scene {
   }
 
   /** Centre of the breathing orb / counting ring. */
+  /** Largest radius the orb / counting ring reaches (smaller on short landscape screens). */
+  get reach() {
+    const short = this.h < 520;
+    return this.size * (this.mode === 'count' ? (short ? 0.15 : 0.17) : short ? 0.13 : 0.155);
+  }
+
+  /** Centre of the orb / ring — kept clear of the top bar (≈64px) on short screens. */
   get focus() {
-    return { x: this.w / 2, y: this.h * (this.mode === 'count' ? 0.36 : 0.3) };
+    const ideal = this.h * (this.mode === 'count' ? 0.36 : 0.3);
+    return { x: this.w / 2, y: Math.max(ideal, TOP_BAR + this.reach + 12) };
   }
 
   get size() {
@@ -469,8 +479,7 @@ export class Scene {
   private drawOrb(ctx: CanvasRenderingContext2D) {
     const th = this.theme;
     const { x, y } = this.focus;
-    const m = this.size;
-    const rMin = m * 0.05, rMax = m * 0.155;
+    const rMax = this.reach, rMin = rMax * 0.32;
     const gr = rMin + (rMax - rMin) * this.guide;
     const glow = this.harmonyGlow;
 
@@ -526,7 +535,7 @@ export class Scene {
   private drawRing(ctx: CanvasRenderingContext2D) {
     const th = this.theme;
     const { x, y } = this.focus;
-    const R = this.size * 0.17;
+    const R = this.reach;
     const lit = this.count;
 
     ctx.strokeStyle = hexA(th.glow, 0.08);
@@ -582,7 +591,7 @@ export class Scene {
   private drawConstellations(ctx: CanvasRenderingContext2D, dt: number) {
     if (!this.constellations.length) return;
     const th = this.theme;
-    const R = this.size * 0.17;
+    const R = this.reach;
     for (const c of this.constellations) {
       c.age += dt;
       const a = clamp(c.age / 2.5, 0, 1) * 0.5;

@@ -1041,3 +1041,384 @@ kbd {
     animation: none;
   }
 }
+
+/* ─── QA pass: pause, touch mode, short screens ───────────────────────── */
+
+.game-canvas {
+  touch-action: none;
+}
+
+.pause-btn {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line-strong);
+  background: rgba(22, 9, 52, 0.6);
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.pause-btn:hover,
+.pause-btn:focus-visible {
+  opacity: 1;
+  border-color: var(--cyan);
+}
+
+.pause-help {
+  margin: 4px 0 6px;
+  text-align: left;
+}
+
+.pause-help .controls-card {
+  gap: 12px;
+}
+
+.touch-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.touch-legend b {
+  color: var(--text);
+}
+
+/* Two-thumb controls. */
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.stick {
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left));
+  bottom: 18px;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  border: 2px solid rgba(70, 240, 255, 0.35);
+  background: radial-gradient(circle, rgba(70, 240, 255, 0.08), rgba(7, 2, 26, 0.55));
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.stick.is-active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 30px -8px var(--cyan);
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54px;
+  height: 54px;
+  margin: -27px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff, var(--cyan) 70%);
+  box-shadow: 0 0 18px var(--cyan);
+  transition: transform 0.08s;
+}
+
+.stick:not(.is-active) .stick-knob {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.stick-arrow {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(242, 236, 255, 0.55);
+}
+.stick-arrow.up {
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+}
+.stick-arrow.down {
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+}
+.stick-arrow.right {
+  right: -2px;
+  top: 50%;
+  transform: translate(100%, -50%);
+  color: var(--cyan);
+}
+.stick-arrow.left {
+  left: -4px;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  display: none;
+}
+
+.touch-actions {
+  position: absolute;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: 18px;
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.touch-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 79, 216, 0.5);
+  background: rgba(7, 2, 26, 0.6);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.touch-btn:active {
+  background: rgba(255, 79, 216, 0.3);
+}
+
+.touch-slow {
+  border-color: rgba(70, 240, 255, 0.5);
+}
+
+.rotate-prompt {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(7, 2, 26, 0.92);
+}
+
+.rp-phone {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 3;
+  transform-origin: 32px 30px;
+  animation: rotate-phone 2.4s ease-in-out infinite;
+}
+
+.rp-arrow {
+  fill: none;
+  stroke: var(--pink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+@keyframes rotate-phone {
+  40%,
+  70% {
+    transform: rotate(-90deg);
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .kbd,
+  kbd,
+  .ink-chip kbd {
+    display: none;
+  }
+  /* Ink chips move to the right edge, above Hop/Slow, as tappable swatches. */
+  .hud-bl {
+    left: auto;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: 96px;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+  }
+  .inks {
+    flex-direction: column;
+  }
+  .ink-chip {
+    min-height: 40px;
+    padding: 6px 12px;
+  }
+  .ink-chip.is-active {
+    transform: translateX(-6px);
+  }
+  .focus {
+    display: none;
+  }
+  .toggle {
+    width: 56px;
+    height: 34px;
+  }
+  .toggle-knob {
+    width: 26px;
+    height: 26px;
+  }
+  .segmented button {
+    min-height: 40px;
+  }
+  .slider {
+    height: 10px;
+  }
+  .slider::-webkit-slider-thumb {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+/* Short screens (landscape phones, small laptops): compact HUD and title. */
+@media (max-height: 560px) {
+  .hud-distance {
+    font-size: 30px;
+  }
+  .hud-distance small {
+    font-size: 14px;
+  }
+  .hud-score,
+  .hud-speed {
+    font-size: 12px;
+  }
+  .hud-stars {
+    font-size: 16px;
+  }
+  .tank {
+    height: 84px;
+    width: 26px;
+  }
+  .ink-chip {
+    font-size: 12px;
+    padding: 4px 10px 4px 4px;
+  }
+  .inks {
+    gap: 4px;
+  }
+  .toasts {
+    top: 10%;
+  }
+  .toast-trick {
+    font-size: 24px;
+  }
+  .stick {
+    width: 116px;
+    height: 116px;
+  }
+  .touch-btn {
+    width: 56px;
+    height: 56px;
+  }
+  .hud-bl {
+    bottom: 84px;
+  }
+  .title-layout {
+    padding: 16px 20px;
+    gap: 16px;
+  }
+  .title-main {
+    gap: 12px;
+    justify-content: flex-start;
+  }
+  .logo {
+    width: min(300px, 70vw);
+  }
+  .tagline {
+    margin-top: -6px;
+    font-size: 16px;
+  }
+  .vehicle-art {
+    height: 40px;
+  }
+  .vc-tag,
+  .vc-stats {
+    display: none;
+  }
+  .vehicle-card {
+    padding: 10px;
+  }
+  .panel,
+  .sheet {
+    padding: 18px;
+  }
+  .pause-help .touch-legend,
+  .pause-help .controls-card {
+    font-size: 12px;
+    gap: 4px;
+  }
+  .pause-help .keys-wasd,
+  .pause-help .mouse-art {
+    display: none;
+  }
+}
+
+.more-games {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 16px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.more-games a {
+  padding: 8px 2px;
+}
+
+.more-games { justify-content: flex-start; margin-top: 12px; }
+.more-games span { color: var(--muted); }
+.more-games a { color: var(--cyan); }
+
+/* Pause sits top-left beside the distance, clear of hint banners. */
+.pause-btn {
+  left: 16px;
+  transform: none;
+}
+.hud-tl {
+  left: 70px;
+}
+.stick-arrow.right {
+  right: -10px;
+}
+@media (hover: none) and (pointer: coarse) {
+  /* Key chips are hidden on touch, so give each ink chip its own color swatch. */
+  .ink-chip::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: 0 0 10px var(--ink);
+    flex-shrink: 0;
+  }
+  .ink-chip {
+    padding-left: 10px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Finger-sized slider hit area; the visible track stays thin. */
+  .slider {
+    height: 32px;
+    background: linear-gradient(90deg, var(--cyan) var(--fill), rgba(255, 255, 255, 0.12) var(--fill)) center / 100% 5px no-repeat;
+  }
+}

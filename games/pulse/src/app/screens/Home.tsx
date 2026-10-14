@@ -39,10 +39,10 @@ export function Home() {
         <Logo />
         <nav className="topbar-actions" aria-label="Main">
           <Button variant="subtle" icon={muted ? <IconMute /> : <IconVolume />} onClick={() => update({ muted: !muted })} aria-label={muted ? 'Unmute (M)' : 'Mute (M)'} />
-          <Button variant="subtle" icon={<IconStats />} onClick={() => go('stats')}>
+          <Button variant="subtle" icon={<IconStats />} onClick={() => go('stats')} aria-label="Stats">
             Stats
           </Button>
-          <Button variant="subtle" icon={<IconSettings />} onClick={() => go('settings')}>
+          <Button variant="subtle" icon={<IconSettings />} onClick={() => go('settings')} aria-label="Settings">
             Settings
           </Button>
         </nav>
@@ -79,6 +79,7 @@ export function Home() {
           </Button>
         </motion.section>
 
+        <h2 className="sr-only">Modes</h2>
         <motion.section className="mode-grid" variants={staggerChildren(0.05, 0.1)} aria-label="Modes">
           {MODES.map((m) => (
             <ModeCard key={m.id} meta={m} best={bestScore(runs, m.id)} onPlay={() => startRun(m.id)} />
@@ -96,6 +97,11 @@ export function Home() {
             <Kbd>M</Kbd> mute
           </span>
         </motion.footer>
+        <motion.nav className="more-games" variants={riseIn} aria-label="More games">
+          <span>More games:</span>
+          <a href="https://drift-calm.vercel.app">Drift — breathe & focus</a>
+          <a href="https://inkway.vercel.app">Inkway — draw the road</a>
+        </motion.nav>
       </motion.div>
     </motion.main>
   );

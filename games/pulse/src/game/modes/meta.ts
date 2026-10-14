@@ -8,6 +8,8 @@ export interface ModeMeta {
   skill: string;
   tagline: string;
   howTo: string;
+  /** Same instructions for fingers. */
+  howToTouch: string;
   hue: PaletteColor;
   /** Zen is the only mode that isn't scored or saved. */
   recorded: boolean;
@@ -20,6 +22,7 @@ export const MODES: ModeMeta[] = [
     skill: 'Speed + accuracy',
     tagline: 'Targets bloom. You pop them.',
     howTo: 'Click each target as fast as you can. Dead-center hits are perfects.',
+    howToTouch: 'Tap each target as fast as you can. Dead-center taps are perfects.',
     hue: 'accent',
     recorded: true,
   },
@@ -29,6 +32,7 @@ export const MODES: ModeMeta[] = [
     skill: 'Smooth tracking',
     tagline: 'Stay on the orb. Feel the hum.',
     howTo: 'Keep your crosshair on the moving orb. No clicking needed.',
+    howToTouch: 'Keep your finger on the gliding orb — drag along with it.',
     hue: 'good',
     recorded: true,
   },
@@ -38,6 +42,7 @@ export const MODES: ModeMeta[] = [
     skill: 'Fine control',
     tagline: 'Small rings. Dead center.',
     howTo: 'Targets shrink as time runs out. Center hits slow time down.',
+    howToTouch: 'Targets shrink as time runs out. Tap dead center to slow time down.',
     hue: 'accent2',
     recorded: true,
   },
@@ -47,6 +52,7 @@ export const MODES: ModeMeta[] = [
     skill: 'Reaction time',
     tagline: 'Wait for it…',
     howTo: 'When the world freezes and a target flashes in — click it. Clicking early costs you.',
+    howToTouch: 'When the world freezes and a target flashes in — tap it. Tapping early costs you.',
     hue: 'warm',
     recorded: true,
   },
@@ -56,6 +62,7 @@ export const MODES: ModeMeta[] = [
     skill: 'Everything, on beat',
     tagline: 'Aim to the music.',
     howTo: 'Click each target as its outer ring closes in — right on the beat.',
+    howToTouch: 'Tap each target as its outer ring closes in — right on the beat.',
     hue: 'hot',
     recorded: true,
   },
@@ -65,6 +72,7 @@ export const MODES: ModeMeta[] = [
     skill: 'Warm-up',
     tagline: 'No timer. No score. Just aim.',
     howTo: 'Drift, click, breathe. Press Esc whenever you’re done.',
+    howToTouch: 'Drift, tap, breathe. Use the pause button whenever you’re done.',
     hue: 'cool',
     recorded: false,
   },

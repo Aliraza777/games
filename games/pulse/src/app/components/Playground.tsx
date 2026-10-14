@@ -87,7 +87,7 @@ export function Playground() {
           Live preview — click the target <span className="tnum">· {hits}</span>
         </div>
       </div>
-      <div className="pg-zoom" aria-label="Crosshair close-up">
+      <div className="pg-zoom" role="img" aria-label="Crosshair close-up">
         <CrosshairSvg c={crosshair} scale={3} />
       </div>
     </div>

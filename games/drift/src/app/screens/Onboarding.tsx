@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { sound } from '../../audio/soundscape';
 import { PATTERNS } from '../../breath/patterns';
 import { PlayerBreath } from '../../breath/sync';
-import { getSpeed } from '../../lib/clock';
+import { capturePointer, getSpeed } from '../../lib/clock';
 import { Scene } from '../../scene/Scene';
 import { useApp } from '../../store/app';
 import { useSettings } from '../../store/settings';
@@ -104,7 +104,7 @@ export function Onboarding() {
       <div
         className="stage-hit"
         onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture?.(e.pointerId);
+          capturePointer(e.currentTarget, e.pointerId);
           press();
         }}
         onPointerUp={release}

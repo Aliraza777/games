@@ -11,6 +11,8 @@ import { Button } from '../components/Button';
 import { ControlsCard, Segmented, Slider, Toggle } from '../components/Controls';
 import { Logo } from '../components/Logo';
 import { VehicleArt } from '../components/VehicleArt';
+import { TouchLegend } from '../components/TouchControls';
+import { isTouchDevice } from '../../lib/device';
 
 /** The real game, on autopilot, drawing its own bridges behind the menu. */
 function Attract({ vehicle }: { vehicle: VehicleId }) {
@@ -33,8 +35,6 @@ function Attract({ vehicle }: { vehicle: VehicleId }) {
   return <canvas ref={canvas} className="attract" aria-hidden />;
 }
 
-const isTouchOnly = () =>
-  typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches;
 
 export function Title() {
   const vehicle = useSettings((s) => s.vehicle);
@@ -44,6 +44,7 @@ export function Title() {
   const startRun = useApp((s) => s.startRun);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const today = dailySeed();
+  const touch = isTouchDevice();
   const dailyBest = daily?.seed === today ? daily.score : null;
 
   const pick = (dir: 1 | -1) => {
@@ -59,10 +60,10 @@ export function Title() {
     const onKey = (e: KeyboardEvent) => {
       if (settingsOpen || e.repeat) return;
       if ((e.target as HTMLElement)?.closest?.('button, input') && (e.key === 'Enter' || e.key === ' ')) return;
-      if (e.key === 'Enter') ride();
-      else if (e.key === 'ArrowRight') pick(1);
-      else if (e.key === 'ArrowLeft') pick(-1);
-      else if (e.key.toLowerCase() === 'y') rideDaily();
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') ride();
+      else if (e.code === 'ArrowRight') pick(1);
+      else if (e.code === 'ArrowLeft') pick(-1);
+      else if (e.code === 'KeyY') rideDaily();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -79,7 +80,7 @@ export function Title() {
           <motion.p className="tagline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
             Draw the road. <em>Drive the road.</em>
           </motion.p>
-          {isTouchOnly() && <p className="touch-note">Inkway needs a keyboard and a mouse or trackpad — one hand drives, the other draws.</p>}
+          {touch && <p className="touch-note">Touch mode: your left thumb drives, your right finger draws. Best played sideways.</p>}
 
           <div className="garage" role="radiogroup" aria-label="Vehicle">
             {VEHICLE_ORDER.map((id, i) => {
@@ -141,11 +142,16 @@ export function Title() {
 
         <motion.aside className="title-side" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
           <h2>Two hands, two jobs</h2>
-          <ControlsCard />
+          {touch ? <TouchLegend /> : <ControlsCard />}
           <p className="side-note">
             <span className="ink-word road">Road</span>, <span className="ink-word bounce">bounce</span> and{' '}
             <span className="ink-word boost">boost</span> ink. Flips refill your tank.
           </p>
+          <nav className="more-games" aria-label="More games">
+            <span>More games:</span>
+            <a href="https://pulse-aim-trainer.vercel.app">Pulse</a>
+            <a href="https://drift-calm.vercel.app">Drift</a>
+          </nav>
         </motion.aside>
       </div>
 

@@ -8,6 +8,8 @@ import type { Platform, Updraft } from './worldgen';
 export const BOUNCE_MIN_SPEED = 9;
 /** Contacts whose normal points this far downward (from ink to vehicle) pass through. */
 export const ONE_WAY_COS = 0.25;
+/** Tilt beyond which a head contact means a crash (cos 60°). */
+export const CRASH_COS = 0.5;
 
 type Tag =
   | { type: 'platform' }
@@ -51,6 +53,7 @@ export class Physics {
   private wheelContacts = [0, 0];
   private surfaces: (InkKind | 'platform' | null)[] = [null, null];
   private crashed = false;
+  private headContacts = 0;
   private hopCooldown = 0;
   private bounceCooldown = 0;
   /** Pending relaunch from bounce ink: unit normal (away from the ink) and speed. */
@@ -140,7 +143,7 @@ export class Physics {
         if (delta > 0) this.surfaces[self.index] = other!.type === 'ink' ? other!.kind : 'platform';
         if (this.wheelContacts[self.index] === 0) this.surfaces[self.index] = null;
       }
-      if (self?.type === 'head' && delta > 0) this.crashed = true;
+      if (self?.type === 'head') this.headContacts = Math.max(0, this.headContacts + delta);
       if (delta > 0 && other?.type === 'ink' && other.kind === 'bounce' && (self?.type === 'wheel' || self?.type === 'chassis')) {
         this.queueBounce(c, other === a);
       }
@@ -308,6 +311,9 @@ export class Physics {
 
     this.bounceCooldown = Math.max(0, this.bounceCooldown - dt);
     this.world.step(dt, 8, 3);
+    // A head touching ground is only a crash when you're actually tipped over —
+    // brushing a line while jumping up through it (or nudging a cliff face) isn't.
+    if (this.headContacts > 0 && Math.cos(this.chassis.getAngle()) < CRASH_COS) this.crashed = true;
     this.applyBounce();
   }
 

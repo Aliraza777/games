@@ -125,6 +125,11 @@ export function Home() {
           ))}
         </motion.section>
 
+        <motion.nav className="more-games" variants={fade} aria-label="More games">
+          <span>More games:</span>
+          <a href="https://pulse-aim-trainer.vercel.app">Pulse — aim trainer</a>
+          <a href="https://inkway.vercel.app">Inkway — draw the road</a>
+        </motion.nav>
         <motion.p className="disclaimer" variants={fade}>
           Drift is a relaxation tool, not medical care. If you ever feel light-headed, stop and breathe normally.
         </motion.p>

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setSpeed } from '../lib/clock';
 import { useApp } from '../store/app';
 import { useHistory } from '../store/history';
@@ -109,6 +109,20 @@ describe('sessions', () => {
     expect(screen.getByTestId('stage')).toHaveAttribute('data-phase', 'inhale');
     await screen.findByText('Breathe out', undefined, SLOW);
     expect(screen.getByTestId('stage')).toHaveAttribute('data-phase', 'exhale');
+  });
+
+  it('keeps the screen awake during a session and releases it after (QA D1)', async () => {
+    const release = vi.fn(() => Promise.resolve());
+    const request = vi.fn(() => Promise.resolve({ release }));
+    Object.defineProperty(navigator, 'wakeLock', { value: { request }, configurable: true });
+    start('resonance');
+    const { unmount } = render(<SessionScreen />);
+    await act(() => new Promise((r) => setTimeout(r, 20)));
+    expect(request).toHaveBeenCalledWith('screen');
+    unmount();
+    await act(() => new Promise((r) => setTimeout(r, 20)));
+    expect(release).toHaveBeenCalled();
+    delete (navigator as unknown as { wakeLock?: unknown }).wakeLock;
   });
 
   it('Escape pauses and Space continues', async () => {

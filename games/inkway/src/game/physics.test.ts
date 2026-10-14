@@ -148,6 +148,17 @@ describe('one-way ink', () => {
     p.wheels.forEach((w) => w.setLinearVelocity({ x: 0, y: 14 } as never));
     for (let i = 0; i < 240; i++) p.step(DT, { throttle: 0, lean: 0, hop: false });
     expect(p.state().y).toBeGreaterThan(0.5);
+    // QA I2: brushing the line on the way up is not a crash.
+    expect(p.state().crashed).toBe(false);
+  });
+
+  it.each(['car', 'bike', 'truck'] as const)('%s survives jumping up through ink', (id) => {
+    const p = new Physics(VEHICLES[id], { x: 10, y: -4 });
+    p.setStroke(1, line(0, 0, 20, 0), 'road');
+    p.chassis.setLinearVelocity({ x: 0, y: 14 } as never);
+    p.wheels.forEach((w) => w.setLinearVelocity({ x: 0, y: 14 } as never));
+    for (let i = 0; i < 240; i++) p.step(DT, { throttle: 0, lean: 0, hop: false });
+    expect(p.state().crashed).toBe(false);
   });
 });
 

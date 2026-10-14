@@ -121,6 +121,8 @@ export class Engine {
   private disposed = false;
   private initialized = false;
   private unbind: (() => void)[] = [];
+  /** 'mouse' | 'touch' | 'pen' — touch gets a haptic tick on hits. */
+  private pointerType = 'mouse';
 
   constructor(host: HTMLElement, opts: EngineOptions) {
     this.host = host;
@@ -246,6 +248,8 @@ export class Engine {
   /** Must be called from a user gesture. Resolves false if lock is off or refused. */
   async lockPointer(): Promise<boolean> {
     if (!this.settings.pointerLock || !this.initialized || this.disposed) return false;
+    // Pointer lock is a mouse feature; on touch screens it only gets in the way.
+    if (matchMedia('(hover: none) and (pointer: coarse)').matches) return false;
     const canvas = this.app.canvas as HTMLCanvasElement & {
       requestPointerLock(opts?: { unadjustedMovement?: boolean }): Promise<void> | void;
     };
@@ -270,7 +274,9 @@ export class Engine {
     const isLocked = () => document.pointerLockElement === canvas;
 
     const onMove = (e: PointerEvent | MouseEvent) => {
-      if (isLocked()) {
+      // Touch always aims where the finger is; only a locked mouse moves relatively.
+      const touch = (e as PointerEvent).pointerType === 'touch';
+      if (isLocked() && !touch) {
         const s = this.settings.sensitivity;
         this.cursor.x = clamp(this.cursor.x + e.movementX * s, 0, this.width);
         this.cursor.y = clamp(this.cursor.y + e.movementY * s, 0, this.height);
@@ -283,8 +289,11 @@ export class Engine {
     // pointerrawupdate delivers input as soon as it arrives, not once per frame.
     const moveEvent = 'onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove';
     const onDown = (e: PointerEvent) => {
+      this.pointerType = e.pointerType;
       if (e.button !== 0 || this.state !== 'running') return;
       e.preventDefault();
+      // A tap has no move before it: aim exactly where the finger (or unlocked mouse) landed.
+      if (!isLocked() || e.pointerType === 'touch') onMove(e);
       this.crosshair.fire();
       this.mode.pointerDown(this.cursor.x, this.cursor.y, e.timeStamp);
     };
@@ -322,6 +331,13 @@ export class Engine {
     this.bg.resize(w, h);
     this.cursor.x = clamp(this.cursor.x, 0, w);
     this.cursor.y = clamp(this.cursor.y, 0, h);
+    // Keep live targets reachable when the window shrinks mid-run.
+    for (const t of this.targets) {
+      if (t.state !== 'alive') continue;
+      const pf = this.playfield(t.radius * 1.2);
+      t.x = clamp(t.x, pf.x, pf.x + pf.w);
+      t.y = clamp(t.y, pf.y, pf.y + pf.h);
+    }
   };
 
   // ─── API for modes ───────────────────────────────────────────────────────
@@ -418,6 +434,7 @@ export class Engine {
     });
     this.bg.pulse(o.perfect ? 1 : 0.5);
     audio.hit(this.combo, !!o.perfect);
+    if (this.pointerType === 'touch' && 'vibrate' in navigator) navigator.vibrate(o.perfect ? 14 : 8);
     return gained;
   }
 

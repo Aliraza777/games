@@ -214,3 +214,32 @@ test('respects reduced motion', async ({ browser }) => {
   expect(errors).toEqual([]);
   await ctx.close();
 });
+
+test('Box breathing reaches its "rest" phase and keeps cycling; "Again" starts fresh', async ({ page }) => {
+  const errors = watchErrors(page);
+  await skipIntro(page, '?speed=8');
+  await page.getByRole('button', { name: /^Box:/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('radio', { name: '2 min' }).click();
+  await dialog.getByRole('radio', { name: 'Just follow' }).click();
+  await dialog.getByRole('button', { name: /begin/i }).click();
+  const stage = page.getByTestId('stage');
+
+  // inhale → hold → exhale → rest → inhale again
+  const seen: string[] = [];
+  for (let i = 0; i < 400 && seen.join(',') !== 'inhale,hold,exhale,rest,inhale'; i++) {
+    const p = await stage.getAttribute('data-phase');
+    if (p && seen[seen.length - 1] !== p) seen.push(p);
+    await page.waitForTimeout(20);
+  }
+  expect(seen).toEqual(['inhale', 'hold', 'exhale', 'rest', 'inhale']);
+  await expect(page.getByTestId('cue')).toHaveText('Breathe in');
+
+  await expect(page.getByTestId('summary')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: /skip|continue/i }).click();
+  await page.getByRole('button', { name: 'Again' }).click();
+  await expect(page.getByTestId('summary')).toBeHidden();
+  await expect(page.getByLabel('Time remaining')).toHaveText(/^[12]:\d\d$/);
+  await expect(page.getByTestId('stage')).toHaveAttribute('data-phase', /inhale|hold/);
+  expect(errors).toEqual([]);
+});

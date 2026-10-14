@@ -21,3 +21,15 @@ export function buzz(ms: number | number[], enabled: boolean) {
 }
 
 export const canVibrate = () => typeof navigator !== 'undefined' && 'vibrate' in navigator;
+
+/**
+ * setPointerCapture throws if the pointer is already gone (a very quick tap,
+ * a cancelled touch). Capture is a nicety — never let it abort input handling.
+ */
+export function capturePointer(el: Element | null, pointerId: number) {
+  try {
+    el?.setPointerCapture?.(pointerId);
+  } catch {
+    /* pointer already released */
+  }
+}

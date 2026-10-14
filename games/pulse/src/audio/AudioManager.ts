@@ -333,6 +333,11 @@ class AudioManager {
     return raw - (ctx.outputLatency || ctx.baseLatency || 0);
   }
 
+  /** True when music is playing on a running clock (Flow can trust musicTime()). */
+  get musicActive(): boolean {
+    return !!this.music && this.ctx?.state === 'running';
+  }
+
   setMusicIntensity(level: number) {
     if (this.music) this.music.intensity = level;
   }
