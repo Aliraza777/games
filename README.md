@@ -8,6 +8,7 @@ A home for small browser games. Each game is a **self-contained Vite app** in `g
 | [Drift](games/drift) | A calming breathing and attention game: breathe, notice, return. |
 | [Inkway](games/inkway) | Draw the road with your mouse, drive it with your keyboard: a neon physics racer. |
 | [Flipline](games/flipline) | One-button neon stunt bike: hold to ride, hold to flip, land clean. 12 levels with loops. |
+| [Stackfall](games/stackfall) | A polished falling-block puzzle: SRS, T-spins, combos; Marathon, Sprint, Ultra, Zen and a Daily challenge. |
 
 ## Everyday commands (from this folder)
 
@@ -54,6 +55,7 @@ games/
   drift/        breathing & focus game
   inkway/       draw-the-road physics racer
   flipline/     one-button stunt bike
+  stackfall/    falling-block puzzle
 templates/
   starter/      what `npm run new-game` copies
 scripts/
